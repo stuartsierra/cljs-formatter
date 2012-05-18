@@ -1,0 +1,6 @@
+* Links
+
+[[http://lemonodor.com/archives/001207.html][Five Approaches to S-Expression Highlighting]] (Lemonodor)
+
+[[http://itunes.apple.com/us/app/lisping/id512138518?mt%3D8][Lisping]] code editor for iPad
+

@@ -1,0 +1,16 @@
+/* FORMATTED CODE */
+.keyword {
+   color: purple;
+}
+
+.string {
+   color: darkgreen;
+}
+
+#content {
+   margin: 100px;
+}
+
+body {
+   background: #ddd;
+}
