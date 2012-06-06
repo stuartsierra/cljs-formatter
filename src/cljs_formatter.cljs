@@ -1,10 +1,12 @@
 (ns cljs-formatter
   (:require [domina :as d]
+            [domina.xpath :as dx]
             [clojure.string :as string]
             [goog.dom :as gdom]
             [goog.style :as style]
             [goog.color :as color]
-            [goog.dom.classes :as classes]))
+            [goog.dom.classes :as classes]
+            [goog.events :as events]))
 
 ;;; Data to HTML strings
 
@@ -73,7 +75,7 @@
 
 ;; Colors chosen with the help of Adobe Kuler
 ;; http://kuler.adobe.com/
-(def initial-state
+(def initial-arrange-state
   (cycle ["#e6f3f7" "#f2ffff" "#e5f2ff" "#ebf7f4" "#e5fff1"]))
 
 (def color first)
@@ -118,8 +120,17 @@
         (do (arrange-element! (next-state state) child container)
             (d/set-styles! child {:display "block"}))))))
 
+(defn remove-all-styles! [elem]
+  ;; remove-attr! doesn't always work
+  (d/set-attr! elem :style "")
+  (doseq [child (d/children elem)]
+    (remove-all-styles! child)))
+
 (defn arrange-element! [state elem container]
+  (remove-all-styles! elem)
   (d/set-styles! elem {:white-space "pre"})
+  (d/remove-class! elem "condensed")
+  (d/add-class! elem "arranged")
   (when (overflow? elem container)
     (cond
      (d/has-class? elem "collection")
@@ -128,5 +139,52 @@
      (arrange-keyval! state elem container))))
 
 (defn arrange! [elem container]
-  (arrange-element! initial-state elem container))
+  (arrange-element! initial-arrange-state elem container))
 
+(defn max-inline-width [elem container]
+  (let [child (d/single-node elem)
+        parent (.-parentNode (d/single-node elem))
+        container-node (d/single-node container)
+        left-bound (.-left (.toBox (style/getBounds child)))
+        parent-right-bound (.-right (.toBox (style/getBounds parent)))
+        container-right-bound (.-right (.toBox (style/getBounds container-node)))]
+    (- (min parent-right-bound container-right-bound) left-bound)))
+
+(defn width [elem]
+  (.-width (style/getBounds (d/single-node elem))))
+
+(defn condense-collection! [elem container]
+  (let [[opener contents closer] (d/children elem)
+        w (- (max-inline-width elem container)
+             (* 2 (+ (width opener) (width closer))))]
+    (d/set-styles! opener {:font-weight "bold"})
+    (d/set-styles! closer {:font-weight "bold"})
+    (d/set-styles! contents {:color "gray"
+                             :display "inline-block"
+                             :max-width (str w "px")
+                             :overflow "hidden"
+                             :text-overflow "ellipsis"})))
+
+(defn condense! [elem container]
+  (remove-all-styles! elem)
+  (d/set-styles! elem {:white-space "pre"})
+  (d/remove-class! elem "arranged")
+  (d/add-class! elem "condensed")
+  (when (overflow? elem container)
+    (when (d/has-class? elem "collection")
+      (condense-collection! elem container))))
+
+(defn toggle! [elem container]
+  (cond (d/has-class? elem "condensed")
+        (arrange! elem container)
+        (d/has-class? elem "arranged")
+        (condense! elem container)
+        :else
+        (condense! elem container)))
+
+(defn set-toggle-on-click! [elem container]
+  (events/listen (d/single-node elem) "click"
+                 (fn [e]
+                   (.stopPropagation e)
+                   (.preventDefault e)
+                   (toggle! elem container))))
