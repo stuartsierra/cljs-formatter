@@ -17,13 +17,28 @@
   []
   (repl/connect (str (server) ":9000/repl")))
 
+(defn for-each-expr [f]
+  (let [content (d/by-id "content")]
+    (doseq [code-container (d/nodes (d/by-class "expr"))]
+      (let [expression (first (d/children
+                               (first (d/children code-container))))]
+        (f expression content)))))
+
+(defn arrange-all! []
+  (for-each-expr formatter/arrange!))
+
+(defn setup-all! []
+  (for-each-expr formatter/set-toggle-on-click!))
+
 (defn ^:export start
   []
   (doseq [[name data] (partition 2 samples/all-samples)]
     (let [expression (d/single-node (formatter/html data))
-          code-container (d/single-node "<div><code></code></div>")
+          code-container (d/single-node "<div class='expr'><code></code></div>")
           content (d/by-id "content")]
       (d/append! content (str "<h2>" name "</h2>"))
       (d/append! (first (d/children code-container)) expression)
-      (d/append! content code-container)
-      (formatter/arrange! expression content))))
+      (d/append! content code-container)))
+  (arrange-all!)
+  (setup-all!))
+
