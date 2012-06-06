@@ -4,8 +4,7 @@
                  [org.clojure/clojurescript "0.0-993"]
                  [ring "1.0.0-RC1"]
                  [compojure "0.6.4"]
-                 [enlive "1.0.0"]
-                 [domina "1.0.0-beta1"]]
+                 [enlive "1.0.0"]]
   :repl-init one.sample.repl
   :source-path "src/app/clj"
   :extra-classpath-dirs ["src/app/cljs"
@@ -13,4 +12,5 @@
                          "src/lib/clj"
                          "src/lib/cljs"
                          "templates"
-                         "../src"])
+                         "../src"
+                         "../domina/src/cljs"])
