@@ -71,6 +71,19 @@
         child-box (.toBox (style/getBounds child))]
     (< (.-right parent-box) (.-right child-box))))
 
+
+(defn max-inline-width [elem container]
+  (let [child (d/single-node elem)
+        parent (.-parentNode (d/single-node elem))
+        container-node (d/single-node container)
+        left-bound (.-left (.toBox (style/getBounds child)))
+        parent-right-bound (.-right (.toBox (style/getBounds parent)))
+        container-right-bound (.-right (.toBox (style/getBounds container-node)))]
+    (- (min parent-right-bound container-right-bound) left-bound)))
+
+(defn width [elem]
+  (.-width (style/getBounds (d/single-node elem))))
+
 (declare arrange-element!)
 
 ;; Colors chosen with the help of Adobe Kuler
@@ -118,7 +131,12 @@
       (if (d/has-class? child "separator")
         (d/set-styles! child {:display "none"})
         (do (arrange-element! (next-state state) child container)
-            (d/set-styles! child {:display "block"}))))))
+            (d/set-styles! child {:display "block"}))))
+    ;; Make containing box no wider than it needs to be
+    (d/set-styles! elem {:width (str (+ (width contents)
+                                        (width opener)
+                                        (width closer))
+                                      "px")})))
 
 (defn remove-all-styles! [elem]
   ;; remove-attr! doesn't always work
@@ -140,18 +158,6 @@
 
 (defn arrange! [elem container]
   (arrange-element! initial-arrange-state elem container))
-
-(defn max-inline-width [elem container]
-  (let [child (d/single-node elem)
-        parent (.-parentNode (d/single-node elem))
-        container-node (d/single-node container)
-        left-bound (.-left (.toBox (style/getBounds child)))
-        parent-right-bound (.-right (.toBox (style/getBounds parent)))
-        container-right-bound (.-right (.toBox (style/getBounds container-node)))]
-    (- (min parent-right-bound container-right-bound) left-bound)))
-
-(defn width [elem]
-  (.-width (style/getBounds (d/single-node elem))))
 
 (defn condense-collection! [elem container]
   (let [[opener contents closer] (d/children elem)
