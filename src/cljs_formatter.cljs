@@ -96,6 +96,7 @@
 (def next-state rest)
 
 (defn arrange-keyval! [state elem container]
+  (d/add-class! elem "arranged")
   (let [[key separator val] (d/children elem)]
     (arrange-element! state key container)
     (arrange-element! state val container)
@@ -106,7 +107,8 @@
                           :margin-left "1em"}))))
 
 (def collection-styles
-  {:display "inline-block"
+  {:color "black"
+   :display "inline-block"
    :padding-top "1px"
    :padding-right "2px"
    :padding-bottom "2px"
@@ -118,6 +120,7 @@
    :border-bottom-left-radius "10px"})
 
 (defn arrange-collection! [state elem container]
+  (d/add-class! elem "arranged")
   (d/set-styles! elem (merge collection-styles
                              {:background-color (color state)}))
   (let [[opener contents closer] (d/children elem)]
@@ -141,6 +144,8 @@
 (defn remove-all-styles! [elem]
   ;; remove-attr! doesn't always work
   (d/set-attr! elem :style "")
+  (d/remove-class! elem "condensed")
+  (d/remove-class! elem "arranged")
   (doseq [child (d/children elem)]
     (remove-all-styles! child)))
 
@@ -148,7 +153,6 @@
   (remove-all-styles! elem)
   (d/set-styles! elem {:white-space "pre"})
   (d/remove-class! elem "condensed")
-  (d/add-class! elem "arranged")
   (when (overflow? elem container)
     (cond
      (d/has-class? elem "collection")
@@ -160,6 +164,7 @@
   (arrange-element! initial-arrange-state elem container))
 
 (defn condense-collection! [elem container]
+  (d/add-class! elem "condensed")
   (let [[opener contents closer] (d/children elem)
         w (- (max-inline-width elem container)
              (* 2 (+ (width opener) (width closer))))]
@@ -175,22 +180,38 @@
   (remove-all-styles! elem)
   (d/set-styles! elem {:white-space "pre"})
   (d/remove-class! elem "arranged")
-  (d/add-class! elem "condensed")
   (when (overflow? elem container)
     (when (d/has-class? elem "collection")
       (condense-collection! elem container))))
+
+(defn find-arranged-parent [elem container]
+  (cond (= container elem)
+          elem
+        (and (gdom/isElement elem)
+             (d/has-class? elem "collection")
+             (d/has-class? elem "arranged"))
+          elem
+        :else
+          (recur (.-parentNode elem) container)))
 
 (defn toggle! [elem container]
   (cond (d/has-class? elem "condensed")
         (arrange! elem container)
         (d/has-class? elem "arranged")
-        (condense! elem container)
-        :else
-        (condense! elem container)))
+        (do (condense! elem (find-arranged-parent (.-parentNode elem)
+                                                  container))
+            (d/set-styles! elem {:display "block"}))))
 
 (defn set-toggle-on-click! [elem container]
   (events/listen (d/single-node elem) "click"
-                 (fn [e]
-                   (.stopPropagation e)
-                   (.preventDefault e)
-                   (toggle! elem container))))
+                 (fn [event]
+                   (loop [elem (.-target event)]
+                     (when elem
+                       (if (and (gdom/isElement elem)
+                                (d/has-class? elem "collection")
+                                (or (d/has-class? elem "condensed")
+                                    (d/has-class? elem "arranged")))
+                         (do (.stopPropagation event)
+                             (.preventDefault event)
+                             (toggle! elem container))
+                         (recur (.-parentNode elem))))))))
