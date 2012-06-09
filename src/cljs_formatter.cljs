@@ -143,6 +143,7 @@
 (defn remove-all-styles! [elem]
   ;; remove-attr! doesn't always work
   (d/set-attr! elem :style "")
+  (d/remove-class! elem "arranged")
   (doseq [child (d/children elem)]
     (remove-all-styles! child)))
 
