@@ -96,7 +96,6 @@
 (def next-state rest)
 
 (defn arrange-keyval! [state elem container]
-  (d/add-class! elem "arranged")
   (let [[key separator val] (d/children elem)]
     (arrange-element! state key container)
     (arrange-element! state val container)
@@ -139,32 +138,15 @@
     (d/set-styles! elem {:width (str (+ (width contents)
                                         (width opener)
                                         (width closer))
-                                      "px")})))
+                                     "px")})))
 
 (defn remove-all-styles! [elem]
   ;; remove-attr! doesn't always work
   (d/set-attr! elem :style "")
-  (d/remove-class! elem "condensed")
-  (d/remove-class! elem "arranged")
   (doseq [child (d/children elem)]
     (remove-all-styles! child)))
 
-(defn arrange-element! [state elem container]
-  (remove-all-styles! elem)
-  (d/set-styles! elem {:white-space "pre"})
-  (d/remove-class! elem "condensed")
-  (when (overflow? elem container)
-    (cond
-     (d/has-class? elem "collection")
-     (arrange-collection! state elem container)
-     (d/has-class? elem "keyval")
-     (arrange-keyval! state elem container))))
-
-(defn arrange! [elem container]
-  (arrange-element! initial-arrange-state elem container))
-
 (defn condense-collection! [elem container]
-  (d/add-class! elem "condensed")
   (let [[opener contents closer] (d/children elem)
         w (- (max-inline-width elem container)
              (* 2 (+ (width opener) (width closer))))]
@@ -176,13 +158,20 @@
                              :overflow "hidden"
                              :text-overflow "ellipsis"})))
 
-(defn condense! [elem container]
+(defn arrange-element! [state elem container]
   (remove-all-styles! elem)
   (d/set-styles! elem {:white-space "pre"})
-  (d/remove-class! elem "arranged")
   (when (overflow? elem container)
-    (when (d/has-class? elem "collection")
-      (condense-collection! elem container))))
+    (cond
+     (d/has-class? elem "collection")
+     (if (d/has-class? elem "condensed")
+       (condense-collection! elem container)
+       (arrange-collection! state elem container))
+     (d/has-class? elem "keyval")
+     (arrange-keyval! state elem container))))
+
+(defn arrange! [elem container]
+  (arrange-element! initial-arrange-state elem container))
 
 (defn find-arranged-parent [elem container]
   (cond (= container elem)
@@ -194,24 +183,22 @@
         :else
           (recur (.-parentNode elem) container)))
 
-(defn toggle! [elem container]
-  (cond (d/has-class? elem "condensed")
-        (arrange! elem container)
-        (d/has-class? elem "arranged")
-        (do (condense! elem (find-arranged-parent (.-parentNode elem)
-                                                  container))
-            (d/set-styles! elem {:display "block"}))))
+(defn toggle! [target-elem arranged-elem container]
+  (if (d/has-class? target-elem "condensed")
+    (d/remove-class! target-elem "condensed")
+    (d/add-class! target-elem "condensed"))
+  (arrange! arranged-elem container))
 
 (defn set-toggle-on-click! [elem container]
   (events/listen (d/single-node elem) "click"
                  (fn [event]
-                   (loop [elem (.-target event)]
-                     (when elem
-                       (if (and (gdom/isElement elem)
-                                (d/has-class? elem "collection")
-                                (or (d/has-class? elem "condensed")
-                                    (d/has-class? elem "arranged")))
+                   (loop [t (.-target event)]
+                     (when t
+                       (if (and (gdom/isElement t)
+                                (d/has-class? t "collection")
+                                (or (d/has-class? t "condensed")
+                                    (d/has-class? t "arranged")))
                          (do (.stopPropagation event)
                              (.preventDefault event)
-                             (toggle! elem container))
-                         (recur (.-parentNode elem))))))))
+                             (toggle! t elem container))
+                         (recur (.-parentNode t))))))))
