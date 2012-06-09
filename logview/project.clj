@@ -8,5 +8,5 @@
   :repl-options {:init-ns logview.main}
   :source-paths ["src"
                  "../src"
-                 "../domina"]
-  :resource-paths ["out"])
+                 "../domina/src/cljs"]
+  :resource-paths ["target/public"])
