@@ -11,7 +11,7 @@ Built using [ClojureScript One](http://clojurescriptone.com/).
 
 To run the sample application, you will need: 
 
-* [Leiningen](https://github.com/technomancy/leiningen)
+* [Leiningen](https://github.com/technomancy/leiningen) version **2.0.0** or higher
 
 Run:
 
