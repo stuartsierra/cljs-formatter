@@ -1,5 +1,6 @@
 (ns logview.web
   (:require [net.cgrand.enlive-html :as enlive]
+            logview.file
             ring.adapter.jetty
             ring.middleware.file-info
             ring.middleware.resource
@@ -9,15 +10,29 @@
             clojure.pprint
             clojure.string))
 
+(def segment-size (* 1024 64))
+(def delimiter (int \newline))
+
 (defn handle-dir [req]
   (ring.util.response/response "DIRECTORY"))
 
 (enlive/deftemplate viewer "logview/viewer.html"
-  []
-  [:footer] (enlive/after "Hello, World!"))
+  [logs]
+  [:div.logs :div.log]
+  (enlive/clone-for
+   [log logs]
+   (enlive/content (pr-str log))))
+
+(defn read-file [req]
+  (-> (::file req)
+      (logview.file/read-segment 0 segment-size delimiter)
+      (logview.file/read-buffer delimiter)))
 
 (defn handle-file [req]
-  (ring.util.response/response (viewer)))
+  (-> req
+      read-file
+      viewer
+      ring.util.response/response))
 
 (defn find-file [req]
   (let [config (:logview/config req)]
