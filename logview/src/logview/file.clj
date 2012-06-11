@@ -48,11 +48,31 @@
                   (split-strings buffer delimiter (inc i)))
             (recur (inc i))))))))
 
-(defn safe-read-string [s]
+(defn- safe-read-string-final [s]
   (try (read-string s)
-            (catch Exception e
-              {:reader-error (str e)
-               :unreadable-string s})))
+       (catch Exception e
+         {:reader-error (str e)
+          :unreadable-string s
+          :in `safe-read-string-final})))
+
+(defn- safe-read-string-without-classes [s]
+  (try (read-string s)
+       (catch RuntimeException e
+         (if (.contains (.getMessage e) "Unreadable form")
+           (safe-read-string-final
+            (clojure.string/replace
+             s #"#<([^>]+)>" (fn [form]
+                               (pr-str {:unreadable-form form}))))
+           {:reader-error (str e)
+            :unreadable-string s
+            :in `safe-read-string-without-classes}))))
+
+(defn safe-read-string [s]
+  (try (safe-read-string-without-classes s)
+       (catch ClassNotFoundException e
+         (safe-read-string-without-classes
+          (clojure.string/replace
+           s #"#(\w+\.[\w.]+)" "^{:reader-class-not-found \1} ")))))
 
 (defn read-buffer [buffer delimiter]
   (mapv safe-read-string (split-strings buffer delimiter)))
