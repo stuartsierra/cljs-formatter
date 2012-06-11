@@ -44,7 +44,7 @@
       (when (< start (count buffer))
         (loop [i start]
           (if (= (aget buffer i) delimiter)
-            (cons (String. buffer start i "UTF-8")
+            (cons (String. buffer start (- i start) "UTF-8")
                   (split-strings buffer delimiter (inc i)))
             (recur (inc i))))))))
 
@@ -55,5 +55,5 @@
                :unreadable-string s})))
 
 (defn read-buffer [buffer delimiter]
-  (map safe-read-string (split-strings buffer delimiter)))
+  (mapv safe-read-string (split-strings buffer delimiter)))
 
