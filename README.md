@@ -3,6 +3,8 @@ cljs-formatter
 
 A ClojureScript pretty-printer that utilizes the DOM.
 
+**Not under active development**
+
 
 Sample App
 ----------------------------------------
